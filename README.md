@@ -7,12 +7,9 @@ Welcome to my data analysis project! In this project, I performed comprehensive 
 
 About Dataset
 
-Context
-
-"Predict behavior to retain customers. You can analyze all relevant customer data and develop focused customer retention programs." 
-
 Content
 
+"Predict behavior to retain customers. You can analyze all relevant customer data and develop focused customer retention programs." 
 Each row represents a customer, each column contains customer’s attributes described on the column Metadata.
 
 
