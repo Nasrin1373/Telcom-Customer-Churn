@@ -79,36 +79,6 @@ FROM Customer_Churn t
 JOIN AverageSpend a ON t.Contract = a.Contract
 WHERE t.TotalCharges > a.avg_spend;
 
---Find customers who have recently churned and their average monthly charges exceed the overall average
-WITH RecentChurned AS (
-  SELECT 
-    CustomerID,
-    Churn,
-    MonthlyCharges,
-    ROW_NUMBER() OVER (PARTITION BY CustomerID ORDER BY Contract DESC) as rn
-  FROM Customer_Churn
-  WHERE Churn = 1
-)
-SELECT r.CustomerID, r.Churn, r.MonthlyCharges, AVG(t.MonthlyCharges) as overall_avg
-FROM RecentChurned r
-JOIN Customer_Churn t ON r.CustomerID = t.CustomerID
-WHERE r.rn = 1
-GROUP BY r.CustomerID, r.Churn, r.MonthlyCharges;
-
---Calculate the 3-month moving average of monthly charges for each customer
-WITH MonthlyChargesWithRowNum AS (
-  SELECT 
-    CustomerID,
-    MonthlyCharges,
-    ROW_NUMBER() OVER (PARTITION BY CustomerID ORDER BY Contract) as rn
-  FROM Customer_Churn
-)
-SELECT 
-  m.CustomerID,
-  m.MonthlyCharges,
-  AVG(m2.MonthlyCharges) OVER (PARTITION BY m.CustomerID ORDER BY m.rn ROWS BETWEEN 2 PRECEDING AND CURRENT ROW) as moving_avg
-FROM MonthlyChargesWithRowNum m
-JOIN MonthlyChargesWithRowNum m2 ON m.CustomerID = m2.CustomerID AND m.rn >= m2.rn - 2 AND m.rn <= m2.rn;
 
 --Rank customers by their total charges within each contract type, including churned customers
 WITH RankedCustomers AS (
@@ -139,53 +109,6 @@ WITH CumulativeTotal AS (
 SELECT c.CustomerID, c.TotalCharges, c.Contract, c.Churn, c.cumulative_total
 FROM CumulativeTotal c;
 
---Identify customers who have a higher total spend than the average spend within their contract type, including churned customers
-WITH AverageSpend AS (
-  SELECT 
-    t.Contract,
-    AVG(t.TotalCharges) as avg_spend
-  FROM Customer_Churn t
-  LEFT JOIN Customer_Churn c ON t.CustomerID = c.CustomerID  AND c.Churn = 1
-  GROUP BY t.Contract
-)
-SELECT t.CustomerID, t.TotalCharges, t.Contract, t.Churn, a.avg_spend
-FROM Customer_Churn t
-LEFT JOIN Customer_Churn c ON t.CustomerID = c.CustomerID  AND c.Churn = 1
-JOIN AverageSpend a ON t.Contract = a.Contract
-WHERE t.TotalCharges > a.avg_spend;
 
 
---Find customers who have recently churned and their average monthly charges exceed the overall average, including churned customers
-WITH RecentChurned AS (
-  SELECT 
-    t.CustomerID,
-    t.Churn,
-    t.MonthlyCharges,
-    ROW_NUMBER() OVER (PARTITION BY t.CustomerID ORDER BY t.Contract DESC) as rn
-  FROM Customer_Churn t
-  LEFT JOIN Customer_Churn c ON t.CustomerID = c.CustomerID  
-  WHERE t.Churn = 1
-)
-SELECT r.CustomerID, r.Churn, r.MonthlyCharges, AVG(t.MonthlyCharges) as overall_avg
-FROM RecentChurned r
-LEFT JOIN Customer_Churn c ON r.CustomerID = c.CustomerID  AND c.Churn = 1
-JOIN Customer_Churn t ON r.CustomerID = t.CustomerID
-WHERE r.rn = 1
-GROUP BY r.CustomerID, r.Churn, r.MonthlyCharges;
 
---Calculate the 3-month moving average of monthly charges for each customer, including churned customers
-WITH MonthlyChargesWithRowNum AS (
-  SELECT 
-    t.CustomerID,
-    t.MonthlyCharges,
-    ROW_NUMBER() OVER (PARTITION BY t.CustomerID ORDER BY t.Contract) as rn
-  FROM Customer_Churn t
-  LEFT JOIN Customer_Churn c ON t.CustomerID = c.CustomerID   AND c.Churn = 1
-)
-SELECT 
-  m.CustomerID,
-  m.MonthlyCharges,
-  AVG(m2.MonthlyCharges) OVER (PARTITION BY m.CustomerID ORDER BY m.rn ROWS BETWEEN 2 PRECEDING AND CURRENT ROW) as moving_avg
-FROM MonthlyChargesWithRowNum m
-LEFT JOIN Customer_Churn c ON m.CustomerID = c.CustomerID   AND c.Churn = 1
-JOIN MonthlyChargesWithRowNum m2 ON m.CustomerID = m2.CustomerID AND m.rn >= m2.rn - 2 AND m.rn <= m2.rn;
