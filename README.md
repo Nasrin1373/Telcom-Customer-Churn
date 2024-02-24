@@ -1,4 +1,4 @@
-# Telcom-Customer-Churn
+# Telecom-Customer-Churn
 Focused customer retention programs
 
 Overview
